@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Lançamentos (Admin)</title>
+
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;background:#f5f6f8;margin:0;color:#243034}
+    .wrap{max-width:1100px;margin:auto;padding:22px}
+
+    .card{background:#fff;border:1px solid #e9edf0;border-radius:14px;padding:18px 22px;box-shadow:0 2px 12px rgba(0,0,0,.03);margin-bottom:16px}
+    .card h2{margin:0 0 12px;font-size:1.35rem;font-weight:800}
+
+    /* Grids exclusivas desta página (evita conflito com outros CSS) */
+    .lan-grid{display:grid;gap:12px;align-items:end}
+    /* Filtros: De | Até | Tipo | Forma | Filtrar | Limpar */
+    .lan-filters{grid-template-columns:180px 180px 1fr 1fr auto auto}
+    /* Editor: Data | Tipo | Descrição | Valor | Forma | Salvar | Limpar */
+    .lan-editor{grid-template-columns:160px 260px 1fr 140px 260px auto auto}
+
+    .lan-grid .col label{display:block;font-weight:600;margin-bottom:6px}
+    .lan-grid .col input,
+    .lan-grid .col select{width:100%;padding:10px 12px;border:1px solid #dbe2ea;border-radius:10px;font-size:14px;background:#fbfdff}
+
+    .btn{background:#0d6efd;color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
+    .btn.btn-danger{background:#dc3545}
+    .btn.btn-secondary{background:#e9eef7;color:#0b1736}
+
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    th,td{padding:12px 14px;background:#fbfdff;border:1px solid #edf1f5}
+    th{background:#f0f4fb;font-weight:800;text-align:left}
+    .actions{display:flex;gap:8px}
+
+    /* Responsivo */
+    @media (max-width: 1200px){
+      .lan-filters{grid-template-columns:1fr 1fr}
+      .lan-editor{grid-template-columns:1fr 1fr}
+    }
+  </style>
+</head>
+<body>
+  {% include "_topbar.html" %}
+  {% include "_flash.html" %}
+
+  <div class="wrap">
+
+    <!-- FILTROS -->
+    <div class="card">
+      <h2>Lançamentos</h2>
+      <form method="get" class="lan-grid lan-filters">
+        <div class="col">
+          <label>De</label>
+          <input type="date" name="start" value="{{ start_iso }}">
+        </div>
+        <div class="col">
+          <label>Até</label>
+          <input type="date" name="end" value="{{ end_iso }}">
+        </div>
+        <div class="col">
+          <label>Tipo de compra</label>
+          <select name="tipo">
+            <option value="">(todos)</option>
+            {% for g in TIPOS_COMPRA %}
+              <option value="{{ g }}" {% if tipo_sel==g %}selected{% endif %}>{{ g }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col">
+          <label>Forma de Pgto.</label>
+          <select name="forma">
+            <option value="">(todas)</option>
+            {% for f in FORMAS_PGTO %}
+              <option value="{{ f }}" {% if forma_sel==f %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col">
+          <label>&nbsp;</label>
+          <button class="btn" type="submit">Filtrar</button>
+        </div>
+        <div class="col">
+          <label>&nbsp;</label>
+          <a class="btn" href="{{ url_for('admin_lancamentos') }}">Limpar</a>
+        </div>
+      </form>
+
+      <div style="margin-top:10px;">
+        <strong>Total no período:</strong>
+        <span style="background:#eef2ff;color:#1e3a8a;padding:4px 10px;border-radius:999px;display:inline-block;">
+          {{ total_periodo|currency_br }}
+        </span>
+      </div>
+    </div>
+
+    <!-- ADICIONAR / EDITAR -->
+    <div class="card">
+      <h2>Adicionar / Editar lançamento</h2>
+      <form id="form-lanc" method="post" class="lan-grid lan-editor">
+        <input type="hidden" name="edit_id" id="edit_id">
+        <div class="col">
+          <label>Data</label>
+          <input id="fld_data" type="date" name="data" required>
+        </div>
+        <div class="col">
+          <label>Tipo de compra</label>
+          <select id="fld_grupo" name="grupo" required>
+            {% for g in TIPOS_COMPRA %}
+              <option value="{{ g }}">{{ g }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col">
+          <label>Descrição</label>
+          <input id="fld_desc" type="text" name="descricao" placeholder="Ex.: Mercado, Embalagens">
+        </div>
+        <div class="col">
+          <label>Valor</label>
+          <input id="fld_valor" type="text" name="valor" value="R$ 0,00" onfocus="this.select()">
+        </div>
+        <div class="col">
+          <label>Forma de Pgto.</label>
+          <select id="fld_forma" name="forma_pagamento" required>
+            {% for f in FORMAS_PGTO %}
+              <option value="{{ f }}">{{ f }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col">
+          <label>&nbsp;</label>
+          <button class="btn" type="submit">Salvar</button>
+        </div>
+        <div class="col">
+          <label>&nbsp;</label>
+          <button id="btn-clear" class="btn btn-secondary" type="button">Limpar</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- LISTA -->
+    <div class="card">
+      <h3 style="margin-top:0">Lançamentos do período</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tipo de compra</th>
+            <th>Descrição</th>
+            <th>Forma</th>
+            <th>Valor</th>
+            <th style="width:160px">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in itens %}
+          <tr>
+            <td>{{ i.data }}</td>
+            <td>{{ i.grupo }}</td>
+            <td>{{ i.descricao }}</td>
+            <td>{{ i.forma_pagamento }}</td>
+            <td>{{ i.valor|currency_br }}</td>
+            <td class="actions">
+              <button class="btn btn-secondary btn-edit"
+                      type="button"
+                      data-id="{{ i.id }}"
+                      data-data="{{ i.data }}"
+                      data-grupo="{{ i.grupo }}"
+                      data-desc="{{ i.descricao|e }}"
+                      data-valor="{{ i.valor }}"
+                      data-forma="{{ i.forma_pagamento }}">
+                Editar
+              </button>
+              <form method="post"
+                    action="{{ url_for('admin_lancamentos_delete', item_id=i.id) }}"
+                    onsubmit="return confirm('Excluir este lançamento?')">
+                <button class="btn btn-danger">Excluir</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">Nenhum lançamento encontrado no período/filtragem.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <style>
+  .pivot-card .grp {margin: 10px 0; border: 1px solid #e9edf0; border-radius: 10px; background:#fff}
+  .pivot-card details > summary {
+    cursor:pointer; list-style:none; padding:12px 16px; font-weight:800;
+    background:#f7f9ff; border-bottom:1px solid #eef2f7; display:flex; justify-content:space-between;
+  }
+  .pivot-card summary .sum {font-weight:700; color:#0b1736}
+  .pivot-card table {width:100%; border-collapse:separate; border-spacing:0}
+  .pivot-card th, .pivot-card td {padding:10px 12px; border-bottom:1px solid #eef2f7}
+  .pivot-card thead th {background:#f0f4fb; font-weight:800; text-align:right}
+  .pivot-card thead th:first-child {text-align:left}
+  .pivot-card tbody td {text-align:right}
+  .pivot-card tbody td:first-child {text-align:left}
+  .pivot-card tfoot th {text-align:right; background:#fbfcff; font-weight:800}
+  .pivot-card .group-total th {border-top:2px solid #e5ebf4}
+  @media (max-width: 1024px){
+    .pivot-card {overflow-x:auto}
+    .pivot-card table {min-width: 880px}
+  }
+</style>
+
+<div class="card pivot-card">
+  <h2>Resumo por dia (por Tipo de compra)</h2>
+
+  {% if pivot_groups and dias_label %}
+    {% for g in pivot_groups %}
+      <details class="grp" open>
+        <summary>
+          <span>{{ g.grupo }}</span>
+          <span class="sum">Total: {{ g.total|currency_br }}</span>
+        </summary>
+
+        <div style="padding: 8px 12px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Fornecedor / Descrição</th>
+                {% for d in dias_label %}
+                  <th>{{ d }}</th>
+                {% endfor %}
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in g.rows %}
+                <tr>
+                  <td>{{ r.desc }}</td>
+                  {% for v in r.vals %}
+                    <td>{{ v|currency_br }}</td>
+                  {% endfor %}
+                  <td><strong>{{ r.total|currency_br }}</strong></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr class="group-total">
+                <th>Total {{ g.grupo }}</th>
+                {% for v in g.totals %}
+                  <th>{{ v|currency_br }}</th>
+                {% endfor %}
+                <th>{{ g.total|currency_br }}</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </details>
+    {% endfor %}
+  {% else %}
+    <p>Nenhum lançamento no período filtrado.</p>
+  {% endif %}
+</div>
+
+
+    <!-- TOTAIS POR TIPO -->
+    <div class="card">
+      <h3 style="margin-top:0">Totais por tipo de compra</h3>
+      <table>
+        <thead><tr><th>Tipo</th><th>Total</th></tr></thead>
+        <tbody>
+          {% for g, v in by_grupo %}
+            <tr><td>{{ g }}</td><td>{{ v|currency_br }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TOTAIS POR FORMA -->
+    <div class="card">
+      <h3 style="margin-top:0">Totais por forma de pagamento</h3>
+      <table>
+        <thead><tr><th>Forma</th><th>Total</th></tr></thead>
+        <tbody>
+          {% for f, v in by_forma %}
+            <tr><td>{{ f }}</td><td>{{ v|currency_br }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    // Preencher formulário para edição
+    document.querySelectorAll('.btn-edit').forEach(btn=>{
+      btn.addEventListener('click', () => {
+        const id   = btn.dataset.id;
+        const data = btn.dataset.data.split('/').reverse().join('-'); // dd/mm/aaaa -> aaaa-mm-dd
+
+        document.getElementById('edit_id').value  = id;
+        document.getElementById('fld_data').value = data;
+        document.getElementById('fld_grupo').value= btn.dataset.grupo;
+        document.getElementById('fld_desc').value = btn.dataset.desc || '';
+        document.getElementById('fld_valor').value= btn.dataset.valor || '';
+        document.getElementById('fld_forma').value= btn.dataset.forma;
+
+        window.scrollTo({top:0, behavior:'smooth'});
+      });
+    });
+
+    // Limpar formulário (volta para modo "adicionar")
+    document.getElementById('btn-clear').addEventListener('click', ()=>{
+      document.getElementById('edit_id').value = '';
+      document.getElementById('form-lanc').reset();
+    });
+  </script>
+</body>
+</html>

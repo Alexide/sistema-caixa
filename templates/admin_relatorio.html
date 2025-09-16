@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Relatório (Admin)</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;background:#f5f6f8;margin:0;color:#243034}
+  .wrap{max-width:1100px;margin:auto;padding:22px}
+  .card{background:#fff;border:1px solid #e9edf0;border-radius:14px;padding:18px 22px;box-shadow:0 2px 12px rgba(0,0,0,.03);margin-bottom:14px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .input,.btn{border:1px solid #d9e3da;border-radius:10px;padding:10px 12px}
+  .btn{background:#0a58ca;color:#fff;border:none;cursor:pointer}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  .kpi{background:#f7f9fc;border:1px solid #e3e8ee;border-radius:12px;padding:14px}
+  .v{font-weight:900}
+  table{width:100%;border-collapse:separate;border-spacing:0 8px}
+  th,td{background:#fff;border:1px solid #e3e8ee;padding:10px 12px}
+  th{background:#f1f5fb}
+</style>
+</head>
+<body>
+  {% include "_topbar.html" %}
+  {% include "_flash.html" %}
+
+
+  <div class="wrap">
+    <div class="card">
+      <h2 style="margin:0 0 10px">Relatório Administrativo</h2>
+      <form class="row" method="get">
+        <label>De <input class="input" type="date" name="start" value="{{ start_iso }}"></label>
+        <label>Até <input class="input" type="date" name="end" value="{{ end_iso }}"></label>
+        <button class="btn">Aplicar</button>
+        <a class="btn" style="background:#6c757d;text-decoration:none" href="{{ url_for('admin_lancamentos', start=start_iso, end=end_iso) }}">Ir para Lançamentos</a>
+      </form>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi">Pedidos (Balcão) <div class="v">{{ pedidos.balcao }}</div></div>
+      <div class="kpi">Pedidos (WhatsApp) <div class="v">{{ pedidos.zap }}</div></div>
+      <div class="kpi">Pedidos (Vuca) <div class="v">{{ pedidos.vuca }}</div></div>
+      <div class="kpi">Pedidos (iFood) <div class="v">{{ pedidos.ifood }}</div></div>
+      <div class="kpi">Pedidos (99Food) <div class="v">{{ pedidos.food99 }}</div></div>
+      <div class="kpi">Taxa de entrega (WhatsApp) <div class="v">{{ taxa_entrega|currency_br }}</div></div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi">iFood (Bruto) <div class="v">{{ ifood_bruto|currency_br }}</div></div>
+      <div class="kpi">iFood (Líquido aprox.) <div class="v">{{ ifood_liq|currency_br }}</div></div>
+      <div class="kpi">99Food (Total) <div class="v">{{ v99_total|currency_br }}</div></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px">Cartões e PIX por maquininha</h3>
+      <table>
+        <thead>
+          <tr><th>Maquininha</th><th style="text-align:right">Débito</th><th style="text-align:right">Crédito</th><th style="text-align:right">PIX</th></tr>
+        </thead>
+        <tbody>
+
+          # nomes para exibição e classes de cor
+            brand_label = {
+                "MP": "Mercado Pago",
+                "ITAU1": "Itaú 1",
+                "ITAU2": "Itaú 2",
+                "ITAU3": "Itaú 3",
+                "VALORI": "Valori",
+                "INFPAY": "InfinitePay",
+                "C6": "C6 (PIX CNPJ)",
+            }
+            brand_css = {
+                "Mercado Pago": "brand-mp",
+                "Itaú 1": "brand-itau",
+                "Itaú 2": "brand-itau",
+                "Itaú 3": "brand-itau",
+                "Valori": "brand-valori",
+                "InfinitePay": "brand-infinitepay",
+                "C6 (PIX CNPJ)": "brand-c6",
+            }
+
+
+          {% for k, v in maquininhas.items() %}
+          <tr>
+            <td>{{ k|upper }}</td>
+            <td style="text-align:right">{{ (v.debito or 0)|currency_br if v.debito is defined else '—' }}</td>
+            <td style="text-align:right">{{ (v.credito or 0)|currency_br if v.credito is defined else '—' }}</td>
+            <td style="text-align:right">{{ (v.pix or 0)|currency_br if v.pix is defined else '—' }}</td>
+          </tr>
+          {% endfor %}
+          <tr style="font-weight:900">
+            <td>Total por meio</td>
+            <td style="text-align:right">{{ totais_por_meio.debito|currency_br }}</td>
+            <td style="text-align:right">{{ totais_por_meio.credito|currency_br }}</td>
+            <td style="text-align:right">{{ totais_por_meio.pix|currency_br }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px">Dinheiro Físico (período)</h3>
+      <table>
+        <tbody>
+          <tr><td>(+) Vendas em Dinheiro (Sistema)</td><td style="text-align:right">{{ vendas_din_sis|currency_br }}</td></tr>
+          <tr><td>(-) Sangrias em Dinheiro</td><td style="text-align:right">-{{ sangrias_din|currency_br }}</td></tr>
+          <tr style="font-weight:900"><td>(=) PREVISÃO EM CAIXA</td><td style="text-align:right">{{ previsao|currency_br }}</td></tr>
+          <tr><td>Entrada de Dinheiro (Final - Inicial)</td><td style="text-align:right">{{ entrada_dinheiro|currency_br }}</td></tr>
+          <tr style="font-weight:900"><td>DIFERENÇA (Quebra no período)</td><td style="text-align:right">{{ quebra|currency_br }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px">Lançamentos gerais (fora do caixa)</h3>
+      <table>
+        <tbody>
+          <tr><td>Total Compras</td><td style="text-align:right">{{ total_compras|currency_br }}</td></tr>
+          <tr><td>Total Saídas</td><td style="text-align:right">{{ total_saidas|currency_br }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

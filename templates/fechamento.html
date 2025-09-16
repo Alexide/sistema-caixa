@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fechamento de Caixa</title>
+  <style>
+    :root{
+      --bg:#f5f6f8; --card:#ffffff; --ink:#243034; --muted:#5c6a5f;
+      --primary:#0a58ca; --ok:#0a8f2a; --danger:#dc3545; --success-bg:#e8f5e9;
+      --ifood-bg:#ffe6e6; --ifood-bd:#ffc9c9; --food99-bg:#fff5da; --food99-bd:#ffe7a8;
+
+      /* cores maquininhas */
+      --mp-bg:#e7f0ff; --mp-bd:#c8dcff;
+      --itau-bg:#fff1e6; --itau-bd:#ffd6b8;
+      --inf-bg:#eee8ff; --inf-bd:#d8ccff;
+      --c6-bg:#f0f2f5; --c6-bd:#d9dee5;
+      --val-bg:#e9f7ef; --val-bd:#cbead6;
+    }
+    *{box-sizing:border-box}
+    [hidden]{display:none!important}
+    body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;color:var(--ink)}
+    .wrap{max-width:900px;margin:auto;padding:22px}
+    .header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    .title{font-size:clamp(1.6rem,2.5vw,2.1rem);font-weight:900;margin:0}
+    .pill{width:34px;height:34px;border-radius:50%;background:#e9edf0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#667}
+    .sub{color:var(--muted)}
+    .bar{height:2px;background:#dfe6ec;margin:14px 0 18px;border:0}
+
+    .card{background:var(--card);border:1px solid #e9edf0;border-radius:14px;padding:18px 22px;box-shadow:0 2px 12px rgba(0,0,0,.03)}
+    .card-title{font-weight:800;margin:0 0 12px}
+    .card-ifood{background:var(--ifood-bg);border-color:var(--ifood-bd)}
+    .card-99{background:var(--food99-bg);border-color:var(--food99-bd)}
+    .card-money{background:var(--success-bg);border-color:#a5d6a7}
+
+    .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+    .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+    .grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+
+    .field{display:flex;flex-direction:column;gap:6px}
+    .label{font-weight:600}
+    .hint{font-size:.86rem;color:var(--muted)}
+    .input{width:100%;border:1px solid #d9e3da;background:#fff;border-radius:10px;padding:10px 12px;font-variant-numeric:tabular-nums}
+    .input:focus{outline:none;border-color:#8bd09b;box-shadow:0 0 0 3px rgba(60,153,110,.2)}
+    .seg{display:inline-grid;grid-auto-flow:column;border:1px solid #cfd7de;border-radius:999px;overflow:hidden}
+    .seg input{display:none}
+    .seg label{padding:8px 14px;cursor:pointer;font-weight:600;color:#44525a;background:#f3f6f8;user-select:none}
+    .seg input:checked+label{background:var(--ok);color:#fff}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .divider{height:1px;background:#e5eaee;margin:16px 0;border:0}
+
+    .footer{display:flex;gap:10px;justify-content:space-between;margin-top:22px}
+    .btn{display:inline-block;border:none;border-radius:10px;padding:11px 22px;font-weight:700;cursor:pointer;text-decoration:none;transition:filter .2s}
+    .btn-back{background:#6c757d;color:#fff}
+    .btn-next{background:var(--primary);color:#fff}
+    .btn-save{background:var(--ok);color:#fff}
+    .btn:hover{filter:brightness(.92)}
+    .btn-danger{background-color:var(--danger);color:#fff;padding:6px 12px;border-radius:10px}
+    .btn-add{background-color:var(--primary);color:#fff}
+
+    .money-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:15px}
+    .money-total{font-size:1.2rem;font-weight:bold;color:var(--ok);margin-top:15px;text-align:right}
+    .sangria-item{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:center;margin-bottom:10px}
+
+    .err{border-color:#dc3545!important;box-shadow:0 0 0 3px rgba(220,53,69,.15)!important}
+
+    .card-mp{background:var(--mp-bg);border-color:var(--mp-bd)}
+    .card-itau{background:var(--itau-bg);border-color:var(--itau-bd)}
+    .card-inf{background:var(--inf-bg);border-color:var(--inf-bd)}
+    .card-c6{background:var(--c6-bg);border-color:var(--c6-bd)}
+    .card-val{background:var(--val-bg);border-color:var(--val-bd)}
+
+    .table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    .table th,.table td{background:#fff;border:1px solid #e3e8ee;padding:10px 12px;text-align:right}
+    .table th{background:#f1f5fb;text-align:center}
+    .table tr td:first-child,.table tr th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px;text-align:left}
+    .table tr td:last-child,.table tr th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+    .sum{font-weight:800}
+    .neg{color:#dc3545}
+    .pos{color:#0a8f2a}
+
+    /* Modal genérico BB */
+    .bb-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:1050}
+    .bb-modal{background:#fff;border:1px solid #e3e8ee;border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.25);max-width:460px;width:100%;padding:18px}
+    .bb-modal h3{margin:0 0 8px;font-size:1.15rem}
+    .bb-modal p{margin:0 0 14px;color:#6a7780}
+    .bb-modal .row{display:flex;gap:10px;justify-content:flex-end}
+    .bb-btn{border:none;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .bb-btn-plain{background:#e5e7eb}
+    .bb-btn-primary{background:#0a58ca;color:#fff}
+    .bb-btn-danger{background:#d92e2e;color:#fff}
+  </style>
+</head>
+<body>
+    {% include "_topbar.html" %}
+    {% include "_flash.html" %}
+
+  <div class="wrap">
+    <input type="hidden" id="registro-id" value="{{ registro.id }}">
+    <input type="hidden" id="valor-inicial-caixa" value="{{ registro.valor_inicial_caixa or 0 }}">
+    <div class="header">
+      <h1 class="title">Fechamento de Caixa</h1>
+      <div class="pill" id="step-indicator">1/6</div>
+    </div>
+    <p class="sub" id="step-subtitle"><strong>Passo 1:</strong> Data + Conferência Vuca</p>
+    <hr class="bar">
+
+    <!-- PASSO 1: DATA + VUCA -->
+    <section id="step-1">
+      <div class="card">
+        <div class="grid-3">
+          <div class="field">
+            <label class="label">Dia do caixa</label>
+            <input type="text" class="input" value="{{ registro.data }}" readonly>
+            <span class="hint">Definido na Abertura do caixa.</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:12px"></div>
+      <div class="card">
+        <h3 class="card-title">Conferência Vuca</h3>
+        <div style="overflow-x:auto">
+          <div style="display:grid;grid-template-columns:160px 1fr 1fr;gap:12px 14px;min-width:560px">
+            <div></div><div class="label" style="font-weight:800;text-align:center">Balcão</div><div class="label" style="font-weight:800;text-align:center">Delivery</div>
+            <div class="label" style="font-weight:700">Dinheiro</div>
+            <input type="text" id="vuca_balcao_dinheiro"  class="input money" placeholder="R$ 0,00">
+            <input type="text" id="vuca_delivery_dinheiro" class="input money" placeholder="R$ 0,00">
+            <div class="label" style="font-weight:700">Débito</div>
+            <input type="text" id="vuca_balcao_debito"  class="input money" placeholder="R$ 0,00">
+            <input type="text" id="vuca_delivery_debito" class="input money" placeholder="R$ 0,00">
+            <div class="label" style="font-weight:700">Crédito</div>
+            <input type="text" id="vuca_balcao_credito"  class="input money" placeholder="R$ 0,00">
+            <input type="text" id="vuca_delivery_credito" class="input money" placeholder="R$ 0,00">
+            <div class="label" style="font-weight:700">PIX</div>
+            <input type="text" id="vuca_balcao_pix"  class="input money" placeholder="R$ 0,00">
+            <input type="text" id="vuca_delivery_pix" class="input money" placeholder="R$ 0,00">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PASSO 2: PEDIDOS DIRETOS -->
+    <section id="step-2" hidden>
+      <div class="card">
+        <div class="grid-4">
+          <div class="field"><label for="pedidos_balcao" class="label">Pedidos (Balcão)</label><input type="number" class="input" id="pedidos_balcao" min="0" placeholder="0"></div>
+          <div class="field"><label for="pedidos_zap" class="label">Pedidos (WhatsApp)</label><input type="number" class="input" id="pedidos_zap" min="0" placeholder="0"></div>
+          <div class="field"><label for="pedidos_vuca" class="label">Pedidos (Vuca Site)</label><input type="number" class="input" id="pedidos_vuca" min="0" placeholder="0"></div>
+          <div class="field"><label for="taxa_entrega" class="label">Taxa de Entrega</label><input type="text" class="input money" id="taxa_entrega" placeholder="R$ 0,00"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PASSO 3: PLATAFORMAS -->
+    <section id="step-3" hidden>
+      <div class="card card-ifood" id="card-ifood">
+        <h3 class="card-title">iFood</h3>
+        <div class="field">
+          <span class="label">Teve pedidos iFood?</span>
+          <div class="seg">
+            <input type="radio" name="ifood_on" id="ifood_on_sim" value="1"><label for="ifood_on_sim">Sim</label>
+            <input type="radio" name="ifood_on" id="ifood_on_nao" value="0" checked><label for="ifood_on_nao">Não</label>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label for="ifood_vendas" class="label">Vendas (Bruto)</label><input type="text" class="input money" id="ifood_vendas" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="ifood_pedidos" class="label">Nº Pedidos</label><input type="number" class="input" id="ifood_pedidos" min="0" step="1"></div>
+        </div>
+        <hr class="divider">
+        <div class="row">
+          <div class="field">
+            <span class="label">Teve cancelamento no iFood?</span>
+            <div class="seg">
+              <input type="radio" name="ifood_cancel_on" id="ifood_cancel_sim" value="1"><label for="ifood_cancel_sim">Sim</label>
+              <input type="radio" name="ifood_cancel_on" id="ifood_cancel_nao" value="0" checked><label for="ifood_cancel_nao">Não</label>
+            </div>
+            <span class="hint">Se “Sim”, informe o valor bruto do(s) cancelamento(s)</span>
+          </div>
+          <div class="field" style="min-width:240px;flex:1" id="ifood_cancel_valor_wrap" hidden>
+            <label for="ifood_cancelamento" class="label">Valor Cancelamentos</label>
+            <input type="text" class="input money" id="ifood_cancelamento" placeholder="R$ 0,00">
+          </div>
+        </div>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="card card-99" id="card-99food">
+        <h3 class="card-title">99Food</h3>
+        <div class="field">
+          <span class="label">Teve pedidos 99Food?</span>
+          <div class="seg">
+            <input type="radio" name="f99_on" id="f99_on_sim" value="1"><label for="f99_on_sim">Sim</label>
+            <input type="radio" name="f99_on" id="f99_on_nao" value="0" checked><label for="f99_on_nao">Não</label>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label for="food99_vendas" class="label">Vendas</label><input type="text" class="input money" id="food99_vendas" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="food99_pedidos" class="label">Nº Pedidos</label><input type="number" class="input" id="food99_pedidos" min="0" step="1"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PASSO 4: MAQUININHAS -->
+    <section id="step-4" hidden>
+      <div class="card card-mp" id="card-mp">
+        <div class="row" style="justify-content:space-between">
+          <h3 class="card-title">Mercado Pago</h3>
+          <div class="seg"><input type="radio" name="mp_on" id="mp_on_sim" value="1"><label for="mp_on_sim">Usou</label><input type="radio" name="mp_on" id="mp_on_nao" value="0" checked><label for="mp_on_nao">Não</label></div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="mp_debito" class="label">Débito</label><input type="text" id="mp_debito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="mp_credito" class="label">Crédito</label><input type="text" id="mp_credito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="mp_pix" class="label">PIX</label><input type="text" id="mp_pix" class="input money" placeholder="R$ 0,00"></div>
+        </div>
+      </div>
+
+      <div class="card card-itau" id="card-itau1" style="margin-top:12px">
+        <div class="row" style="justify-content:space-between">
+          <h3 class="card-title">Itaú 1</h3>
+          <div class="seg"><input type="radio" name="itau1_on" id="itau1_on_sim" value="1"><label for="itau1_on_sim">Usou</label><input type="radio" name="itau1_on" id="itau1_on_nao" value="0" checked><label for="itau1_on_nao">Não</label></div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="itau1_debito" class="label">Débito</label><input type="text" id="itau1_debito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="itau1_credito" class="label">Crédito</label><input type="text" id="itau1_credito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="itau1_pix" class="label">PIX</label><input type="text" id="itau1_pix" class="input money" placeholder="R$ 0,00"></div>
+        </div>
+      </div>
+
+      <div class="card card-itau" id="card-itau2" style="margin-top:12px">
+        <div class="row" style="justify-content:space-between">
+          <h3 class="card-title">Itaú 2</h3>
+          <div class="seg"><input type="radio" name="itau2_on" id="itau2_on_sim" value="1"><label for="itau2_on_sim">Usou</label><input type="radio" name="itau2_on" id="itau2_on_nao" value="0" checked><label for="itau2_on_nao">Não</label></div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="itau2_debito" class="label">Débito</label><input type="text" id="itau2_debito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="itau2_credito" class="label">Crédito</label><input type="text" id="itau2_credito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="itau2_pix" class="label">PIX</label><input type="text" id="itau2_pix" class="input money" placeholder="R$ 0,00"></div>
+        </div>
+      </div>
+
+      <div class="card card-itau" id="card-itau3" style="margin-top:12px">
+        <div class="row" style="justify-content:space-between">
+          <h3 class="card-title">Itaú 3</h3>
+          <div class="seg"><input type="radio" name="itau3_on" id="itau3_on_sim" value="1"><label for="itau3_on_sim">Usou</label><input type="radio" name="itau3_on" id="itau3_on_nao" value="0" checked><label for="itau3_on_nao">Não</label></div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="itau3_debito" class="label">Débito</label><input type="text" id="itau3_debito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="itau3_credito" class="label">Crédito</label><input type="text" id="itau3_credito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="itau3_pix" class="label">PIX</label><input type="text" id="itau3_pix" class="input money" placeholder="R$ 0,00"></div>
+        </div>
+      </div>
+
+      <div class="card card-val" id="card-valori" style="margin-top:12px">
+        <div class="row" style="justify-content:space-between">
+          <h3 class="card-title">Valori</h3>
+          <div class="seg"><input type="radio" name="valori_on" id="valori_on_sim" value="1"><label for="valori_on_sim">Usou</label><input type="radio" name="valori_on" id="valori_on_nao" value="0" checked><label for="valori_on_nao">Não</label></div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="valori_debito" class="label">Débito</label><input type="text" id="valori_debito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="valori_credito" class="label">Crédito</label><input type="text" id="valori_credito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="valori_pix" class="label">PIX</label><input type="text" id="valori_pix" class="input money" placeholder="R$ 0,00"></div>
+        </div>
+      </div>
+
+      <div class="card card-inf" id="card-inf" style="margin-top:12px">
+        <div class="row" style="justify-content:space-between">
+          <h3 class="card-title">InfinitePay</h3>
+          <div class="seg"><input type="radio" name="inf_on" id="inf_on_sim" value="1"><label for="inf_on_sim">Usou</label><input type="radio" name="inf_on" id="inf_on_nao" value="0" checked><label for="inf_on_nao">Não</label></div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="infinitepay_debito" class="label">Débito</label><input type="text" id="infinitepay_debito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="infinitepay_credito" class="label">Crédito</label><input type="text" id="infinitepay_credito" class="input money" placeholder="R$ 0,00"></div>
+          <div class="field"><label for="infinitepay_pix" class="label">PIX</label><input type="text" id="infinitepay_pix" class="input money" placeholder="R$ 0,00"></div>
+        </div>
+      </div>
+
+      <div class="card card-c6" id="card-c6" style="margin-top:12px">
+        <div class="row" style="justify-content:space-between">
+          <h3 class="card-title">PIX (C6 Bank)</h3>
+        <div class="seg"><input type="radio" name="c6_on" id="c6_on_sim" value="1"><label for="c6_on_sim">Usou</label><input type="radio" name="c6_on" id="c6_on_nao" value="0" checked><label for="c6_on_nao">Não</label></div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="c6_pix" class="label">PIX (CNPJ)</label><input type="text" id="c6_pix" class="input money" placeholder="R$ 0,00"></div>
+          <div></div><div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PASSO 5: DINHEIRO + SANGRIA -->
+    <section id="step-5" hidden>
+      <div class="card card-money">
+        <h3 class="card-title">Contagem Final do Dinheiro (Caixa)</h3>
+        <div class="money-grid" id="money-grid-final"></div>
+        <div id="total-dinheiro-final" class="money-total">Total Contado: R$ 0,00</div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <h3 class="card-title">Sangrias</h3>
+        <div class="field">
+          <span class="label">Teve sangria?</span>
+          <div class="seg">
+            <input type="radio" name="teve_sangria" id="sangria_sim" value="1"><label for="sangria_sim">Sim</label>
+            <input type="radio" name="teve_sangria" id="sangria_nao" value="0" checked><label for="sangria_nao">Não</label>
+          </div>
+        </div>
+        <div id="sangria-details" hidden>
+          <div id="sangria-container"></div>
+          <button type="button" class="btn btn-add" id="btnAddSangria">+ Adicionar Sangria</button>
+        </div>
+      </div>
+  
+    </section>
+
+    <!-- PASSO 6: COMPARATIVO -->
+    <section id="step-6" hidden>
+      
+    <!-- === Conferência de Dinheiro Físico (agora no Passo 6) === -->
+    <div class="card" id="cash-audit" style="margin-top:14px">
+      <h3 class="card-title">Conferência de Dinheiro Físico</h3>
+      <div style="overflow-x:auto">
+        <table class="table">
+      <tbody>
+        <tr>
+          <td style="width:65%">(+) Abertura do Caixa</td>
+          <td id="cd-abr-caixa" style="text-align:right">R$ 0,00</td>
+        </tr>
+        <tr>
+          <td>(+) Vendas em Dinheiro (Sistema)</td>
+          <td id="cd-vendas-din-sis" style="text-align:right">R$ 0,00</td>
+        </tr>
+        <tr>
+          <td>(-) Sangrias em Dinheiro</td>
+          <td id="cd-sangria-din" style="text-align:right">R$ 0,00</td>
+        </tr>
+        <tr class="sum">
+          <td>(=) PREVISÃO EM CAIXA</td>
+          <td id="cd-previsao" style="text-align:right">R$ 0,00</td>
+        </tr>
+        <tr>
+          <td>Dinheiro Contado</td>
+          <td id="cd-contado" style="text-align:right">R$ 0,00</td>
+        </tr>
+        <tr class="sum">
+          <td>DIFERENÇA (Quebra de Caixa)</td>
+          <td id="cd-quebra" style="text-align:right">R$ 0,00</td>
+        </tr>
+        <tr>
+          <td>FINAL (Vendas em dinheiro)</td>
+          <td id="cd-final-real" style="text-align:right">R$ 0,00</td>
+        </tr>
+      </tbody>
+
+        </table>
+      </div>
+    </div>
+
+
+      <div class="card">
+        <h3 class="card-title">Comparativo • Sistema × Real × Diferenças</h3>  
+        <div style="overflow-x:auto">
+          <table class="table">
+            <thead><tr><th>Categoria</th><th>Sistema</th><th>Real</th><th>Diferença</th></tr></thead>
+            <tbody>
+              <tr><td>Dinheiro</td> <td id="s-dinheiro">R$ 0,00</td> <td id="r-dinheiro">R$ 0,00</td> <td id="d-dinheiro">R$ 0,00</td></tr>
+              <tr><td>Débito</td>   <td id="s-debito">R$ 0,00</td>   <td id="r-debito">R$ 0,00</td>   <td id="d-debito">R$ 0,00</td></tr>
+              <tr><td>Crédito</td>  <td id="s-credito">R$ 0,00</td>  <td id="r-credito">R$ 0,00</td>  <td id="d-credito">R$ 0,00</td></tr>
+              <tr><td>PIX</td>      <td id="s-pix">R$ 0,00</td>      <td id="r-pix">R$ 0,00</td>      <td id="d-pix">R$ 0,00</td></tr>
+              <tr class="sum"><td>Diferença Cartão</td><td colspan="2"></td><td id="d-cartao">R$ 0,00</td></tr>
+              <tr class="sum"><td>Diferença Cartão + PIX</td><td colspan="2"></td><td id="d-cartao-pix">R$ 0,00</td></tr>
+              <tr class="sum"><td>Diferença Total</td><td colspan="2"></td><td id="d-total">R$ 0,00</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      
+    </section>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <button type="button" class="btn btn-back" id="btnAnterior" hidden>Anterior</button>
+      <button type="button" class="btn btn-next" id="btnProximo">Próximo</button>
+      <button type="button" class="btn btn-save" id="btnSalvar" hidden>Finalizar e Salvar</button>
+    </div>
+  </div>
+
+  <!-- MODAIS EXISTENTES -->
+  <div class="modal-backdrop" id="modal-pass2" style="position:fixed;inset:0;display:none;background:rgba(0,0,0,.35);align-items:center;justify-content:center;padding:16px;z-index:60">
+    <div class="modal" style="background:#fff;border:1px solid #e3e8ee;border-radius:12px;max-width:480px;width:100%;padding:18px;box-shadow:0 18px 40px rgba(0,0,0,.25)">
+      <h3 style="margin:0 0 6px">Confirmar Pedidos Diretos</h3>
+      <p style="margin:0 0 12px;color:#5c6a5f">Confira os valores informados antes de avançar:</p>
+      <ul id="modal-pass2-list" style="margin:0 0 14px 18px; padding:0; line-height:1.6"></ul>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" id="pass2-cancel" class="btn btn-back">Voltar e editar</button>
+        <button type="button" id="pass2-ok" class="btn btn-next">Confirmar e continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-p4" style="position:fixed;inset:0;display:none;background:rgba(0,0,0,.35);align-items:center;justify-content:center;padding:16px;z-index:60">
+    <div class="modal" style="background:#fff;border:1px solid #e3e8ee;border-radius:12px;max-width:520px;width:100%;padding:18px;box-shadow:0 18px 40px rgba(0,0,0,.25)">
+      <h3 style="margin:0 0 6px">Confirmar ausência de cartões/PIX</h3>
+      <p style="margin:0 0 12px;color:#5c6a5f">
+        Você está avançando com <strong>todas as maquininhas/PIX zeradas</strong>. Deseja confirmar que <strong>não houve vendas em cartões ou PIX</strong>?
+      </p>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" id="p4-cancel" class="btn btn-back">Voltar e editar</button>
+        <button type="button" id="p4-ok" class="btn btn-next">Confirmar e continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL GENÉRICO BB -->
+  <div class="bb-backdrop" id="bbModal">
+    <div class="bb-modal" role="dialog" aria-modal="true" aria-labelledby="bbModalTitle">
+      <h3 id="bbModalTitle">Atenção</h3>
+      <p id="bbModalMsg">Mensagem</p>
+      <div class="row">
+        <button class="bb-btn bb-btn-plain" id="bbModalCancel" style="display:none">Cancelar</button>
+        <button class="bb-btn bb-btn-primary" id="bbModalOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===== Modal genérico BB ===== */
+    const BBModal = (() => {
+      const el = {
+        root:   document.getElementById('bbModal'),
+        title:  document.getElementById('bbModalTitle'),
+        msg:    document.getElementById('bbModalMsg'),
+        ok:     document.getElementById('bbModalOk'),
+        cancel: document.getElementById('bbModalCancel'),
+      };
+      let onOkCB=null, onCancelCB=null;
+      function open({title='Atenção', message='', okText='OK', cancelText=null, okVariant='primary', onOk=null, onCancel=null}){
+        el.title.textContent=title; el.msg.innerHTML=message;
+        el.ok.textContent=okText||'OK';
+        el.ok.className='bb-btn '+(okVariant==='danger'?'bb-btn-danger':'bb-btn-primary');
+        if(cancelText){ el.cancel.style.display=''; el.cancel.textContent=cancelText; } else { el.cancel.style.display='none'; }
+        onOkCB=onOk; onCancelCB=onCancel; el.root.style.display='flex'; el.ok.focus();
+      }
+      function close(){ el.root.style.display='none'; onOkCB=onCancelCB=null; }
+      el.ok.addEventListener('click',()=>{ try{onOkCB&&onOkCB();} finally{close();} });
+      el.cancel.addEventListener('click',()=>{ try{onCancelCB&&onCancelCB();} finally{close();} });
+      el.root.addEventListener('click',e=>{ if(e.target===el.root) close(); });
+      document.addEventListener('keydown',e=>{
+        if(el.root.style.display==='flex'){
+          if(e.key==='Escape'){ e.preventDefault(); close(); }
+          if(e.key==='Enter'){ e.preventDefault(); el.ok.click(); }
+        }
+      });
+      return {
+        error:(msg)=>open({title:'Ops!', message:msg, okText:'Entendi', okVariant:'danger'}),
+        info:(msg)=>open({title:'Aviso', message:msg}),
+        open, close
+      };
+    })();
+
+    let currentStep=1;
+    const totalSteps=6;
+    const stepTitles=[
+      "Conferência Vuca",
+      "Pedidos Diretos",
+      "Plataformas (iFood / 99Food)",
+      "Vendas em Maquininhas",
+      "Dinheiro Físico e Sangrias",
+      "Comparativo Sistema × Real × Diferenças"
+    ];
+
+    const indicator=document.getElementById('step-indicator');
+    const subtitle=document.getElementById('step-subtitle');
+    const btnAnterior=document.getElementById('btnAnterior');
+    const btnProximo=document.getElementById('btnProximo');
+    const btnSalvar=document.getElementById('btnSalvar');
+
+    // BRL helpers
+    const fmtBRL=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+    const toBRL=n=>fmtBRL.format(isFinite(n)?n:0);
+    const parseBRL=s=>{
+      if(!s) return 0;
+      const x=String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.');
+      const n=parseFloat(x);
+      return isNaN(n)?0:n;
+    };
+    function applyMoneyMask(selector){
+      document.querySelectorAll(selector).forEach(inp=>{
+        inp.addEventListener('focus',()=>{const v=parseBRL(inp.value); inp.value=v?String(v).replace('.', ','):''; inp.select();});
+        inp.addEventListener('input',()=>{inp.value=inp.value.replace(/[^0-9,.-]/g,'');});
+        inp.addEventListener('blur',()=>{const n=parseBRL(inp.value); inp.value = toBRL(n || 0);});
+      });
+    }
+    function markError(el){if(el){el.classList.add('err'); el.scrollIntoView({block:'center',behavior:'smooth'}); el.focus();}}
+    function clearError(el){el?.classList.remove('err');}
+    function mustFilled(el){clearError(el); const raw=(el?.value||'').toString().trim(); if(raw===''){markError(el); return false;} return true;}
+
+    function setEnabled(card,enabled){
+      card.querySelectorAll('input,select,textarea').forEach(el=>{
+        if(el.type!=='radio'){
+          el.disabled=!enabled;
+          if(!enabled){clearError(el); el.value='';}
+        }
+      });
+      card.style.opacity=enabled?1:.6;
+    }
+
+    // session storage
+    const getPayload=()=>JSON.parse(sessionStorage.getItem('fechamento_payload')||'{}');
+    const setPayload=p=>sessionStorage.setItem('fechamento_payload', JSON.stringify(p));
+    const getVal=id=>document.getElementById(id)?.value||'';
+    const getNum=id=>Number(getVal(id)||0);
+    const getMoney=id=>parseBRL(getVal(id));
+
+    function saveStepData(step){
+      const payload=getPayload();
+      switch(step){
+        case 1: {
+          ['dinheiro','debito','credito','pix'].forEach(t=>{
+            payload[`vuca_balcao_${t}`]=getMoney(`vuca_balcao_${t}`);
+            payload[`vuca_delivery_${t}`]=getMoney(`vuca_delivery_${t}`);
+          });
+          break;
+        }
+
+        case 2:
+          payload.pedidos_balcao=getNum('pedidos_balcao');
+          payload.pedidos_zap=getNum('pedidos_zap');
+          payload.pedidos_vuca=getNum('pedidos_vuca');
+          payload.taxa_entrega=getMoney('taxa_entrega');
+          break;
+        case 3:
+          payload.ifood_vendas=getMoney('ifood_vendas');
+          payload.ifood_pedidos=getNum('ifood_pedidos');
+          payload.ifood_cancelamento=getMoney('ifood_cancelamento');
+          payload.food99_vendas=getMoney('food99_vendas');
+          payload.food99_pedidos=getNum('food99_pedidos');
+          break;
+        case 4:
+          ['mp','itau1','itau2','itau3','valori','infinitepay'].forEach(p=>{
+            payload[`${p}_debito`]=getMoney(`${p}_debito`);
+            payload[`${p}_credito`]=getMoney(`${p}_credito`);
+            payload[`${p}_pix`]=getMoney(`${p}_pix`);
+          });
+          payload.c6_pix=getMoney('c6_pix');
+          break;
+        case 5:
+          payload.valor_final_caixa=updateMoneyTotal('money-grid-final','total-dinheiro-final',false);
+          payload.sangrias=Array.from(document.querySelectorAll('#sangria-container .sangria-item')).map(item=>{
+            const desc=item.querySelector('input[id^="sangria-desc-"]')?.value||'';
+            const val =parseBRL(item.querySelector('input[id^="sangria-valor-"]')?.value||'');
+            const forma=item.querySelector('select[id^="sangria-forma-"]')?.value||'Dinheiro';
+            return {descricao:desc, valor:val, forma_pagamento:forma};
+          });
+          break;
+        case 6: default: break;
+      }
+      setPayload(payload);
+    }
+
+    function loadData(){
+      const p=getPayload();
+      if(!Object.keys(p).length) return;
+      Object.keys(p).forEach(k=>{
+        const el=document.getElementById(k);
+        if(!el) return;
+        if(el.classList.contains('money')) el.value=toBRL(p[k]); else el.value=p[k];
+      });
+      if(p.sangrias && p.sangrias.length){
+        document.getElementById('sangria_sim').checked=true;
+        document.getElementById('sangria-details').hidden=false;
+        p.sangrias.forEach(addSangria);
+      }
+    }
+
+    // validações
+    function validateStep1() {
+      const ids = [
+        'vuca_balcao_dinheiro','vuca_balcao_debito','vuca_balcao_credito','vuca_balcao_pix',
+        'vuca_delivery_dinheiro','vuca_delivery_debito','vuca_delivery_credito','vuca_delivery_pix'
+      ];
+
+      // Normaliza vazios para "R$ 0,00" e limpa erros
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && (el.value || '').trim() === '') el.value = toBRL(0);
+        clearError(el);
+      });
+
+      const allZero = ids.every(id => parseBRL(getVal(id)) === 0);
+      if (allZero) {
+        alert('Não é possível avançar com todos os valores do Vuca iguais a 0.');
+        markError(document.getElementById(ids[0]));
+        return false;
+      }
+      return true;
+    }
+
+
+    // ✅ Passo 2 agora aceita zero. Nada de bloqueio.
+    // Normaliza vazios para 0 / R$ 0,00 e limpa qualquer marca de erro.
+    function validateStep2(){
+      // Campos numéricos (podem ser 0)
+      const idsNum = ['pedidos_balcao','pedidos_zap','pedidos_vuca'];
+      idsNum.forEach(id=>{
+        const el = document.getElementById(id);
+        let v = (el.value === '' ? 0 : Number(el.value));
+        if (!Number.isFinite(v) || v < 0) v = 0;   // sem negativos / NaN
+        el.value = String(v);
+        clearError(el);
+      });
+
+      // Taxa de entrega (pode ser 0)
+      const te = document.getElementById('taxa_entrega');
+      const teVal = parseBRL(te.value);
+      te.value = toBRL(teVal || 0);
+      clearError(te);
+
+      return true; // sempre permite avançar (o modal de confirmação já existe)
+    }
+
+
+    function validateStep3(){
+      if(document.getElementById('ifood_on_sim').checked){
+        if(!mustFilled(document.getElementById('ifood_vendas'))) return false;
+        if(!mustFilled(document.getElementById('ifood_pedidos'))) return false;
+        if(document.getElementById('ifood_cancel_sim').checked){
+          if(!mustFilled(document.getElementById('ifood_cancelamento'))) return false;
+        }
+      }
+      if(document.getElementById('f99_on_sim').checked){
+        if(!mustFilled(document.getElementById('food99_vendas'))) return false;
+        if(!mustFilled(document.getElementById('food99_pedidos'))) return false;
+      }
+      return true;
+    }
+
+    function allMachinesZeroOrOff(){
+      const onFlags=['mp','itau1','itau2','itau3','valori','inf','c6'].map(k=>document.getElementById(`${k}_on_sim`)?.checked);
+      const allOff=onFlags.every(x=>!x);
+      const vals=[
+        'mp_debito','mp_credito','mp_pix',
+        'itau1_debito','itau1_credito','itau1_pix',
+        'itau2_debito','itau2_credito','itau2_pix',
+        'itau3_debito','itau3_credito','itau3_pix',
+        'valori_debito','valori_credito','valori_pix',
+        'infinitepay_debito','infinitepay_credito','infinitepay_pix',
+        'c6_pix'
+      ].map(id=>parseBRL(getVal(id)));
+      const sum=vals.reduce((a,b)=>a+(b||0),0);
+      return allOff && sum===0;
+    }
+
+    function validateStep4(){
+      const groups = [
+        { k: 'mp',          toggle: 'mp',       fields: ['debito','credito','pix'] },
+        { k: 'itau1',       toggle: 'itau1',    fields: ['debito','credito','pix'] },
+        { k: 'itau2',       toggle: 'itau2',    fields: ['debito','credito','pix'] },
+        { k: 'itau3',       toggle: 'itau3',    fields: ['debito','credito','pix'] },
+        { k: 'valori',      toggle: 'valori',   fields: ['debito','credito','pix'] },
+        { k: 'infinitepay', toggle: 'inf',      fields: ['debito','credito','pix'] },
+        { k: 'c6',          toggle: 'c6',       fields: ['pix'] }
+      ];
+
+      for (const g of groups) {
+        const used = document.getElementById(`${g.toggle}_on_sim`)?.checked;
+        if (!used) continue;
+
+        const values = g.fields.map(f => parseBRL(getVal(`${g.k}_${f}`)));
+        const anyFilled = values.some(v => v > 0);
+
+        if (!anyFilled) {
+          const firstField = document.getElementById(`${g.k}_${g.fields[0]}`);
+          markError(firstField);
+          BBModal.error('Informe pelo menos um valor (Débito, Crédito ou PIX) na maquininha marcada como <strong>Usou</strong>.');
+          return false;
+        }
+      }
+
+      if (allMachinesZeroOrOff()) {
+        document.getElementById('modal-p4').style.display = 'flex';
+        return 'confirm';
+      }
+      return true;
+    }
+
+    function validateStep5(){
+      const total=updateMoneyTotal('money-grid-final','total-dinheiro-final',true);
+      if(total<=0){
+        const totEl=document.getElementById('total-dinheiro-final');
+        const old=totEl.style.color; totEl.style.color='#dc3545'; setTimeout(()=>totEl.style.color=old||'',1200);
+        BBModal.error('Informe a contagem final do dinheiro <strong>(&gt; 0)</strong>.');
+        return false;
+      }
+      const sangriaYes=document.getElementById('sangria_sim').checked;
+      if(sangriaYes){
+        const items=Array.from(document.querySelectorAll('#sangria-container .sangria-item'));
+        if(items.length===0){ BBModal.error('Adicione pelo menos uma sangria.'); document.getElementById('btnAddSangria').focus(); return false; }
+        for(const item of items){
+          const descEl=item.querySelector('input[id^="sangria-desc-"]');
+          const valorEl=item.querySelector('input[id^="sangria-valor-"]');
+          clearError(descEl); clearError(valorEl);
+          const descOk=(descEl?.value||'').trim()!==''; const valNum=parseBRL(valorEl?.value||''); const valOk=valNum>0;
+          if(!descOk){ markError(descEl); BBModal.error('Preencha a <strong>descrição</strong> da sangria.'); return false; }
+          if(!valOk){  markError(valorEl); BBModal.error('Informe um <strong>valor de sangria &gt; 0</strong>.'); return false; }
+        }
+      }
+      return true;
+    }
+
+    // Comparativo
+
+  function recomputeComparison(){
+    // --- Sistema (Vuca) ---
+    const S_dinheiro = getMoney('vuca_balcao_dinheiro') + getMoney('vuca_delivery_dinheiro');
+    const S_debito   = getMoney('vuca_balcao_debito')   + getMoney('vuca_delivery_debito');
+    const S_credito  = getMoney('vuca_balcao_credito')  + getMoney('vuca_delivery_credito');
+    const S_pix      = getMoney('vuca_balcao_pix')      + getMoney('vuca_delivery_pix');
+
+    // --- Totais digitados pelo usuário ---
+    const p = getPayload();
+    const R_debito  = ['mp','itau1','itau2','itau3','valori','infinitepay']
+                        .reduce((a,k)=>a+getMoney(`${k}_debito`),0);
+    const R_credito = ['mp','itau1','itau2','itau3','valori','infinitepay']
+                        .reduce((a,k)=>a+getMoney(`${k}_credito`),0);
+    const R_pix     = ['mp','itau1','itau2','itau3','valori','infinitepay']
+                        .reduce((a,k)=>a+getMoney(`${k}_pix`),0) + getMoney('c6_pix');
+
+    // --- Conferência de Dinheiro ---
+    const valorInicial = Number(document.getElementById('valor-inicial-caixa').value || 0);
+    const contado      = p.valor_final_caixa || updateMoneyTotal('money-grid-final','total-dinheiro-final',false);
+
+    // Somente sangrias em DINHEIRO (valor positivo)
+    const sangDin = Array.isArray(p.sangrias) ? p.sangrias
+                      .filter(s => (s.forma_pagamento || '').toLowerCase() === 'dinheiro')
+                      .reduce((acc,s) => acc + (Number(s.valor)||0), 0) : 0;
+
+    // Previsão (o que esperávamos achar no caixa)
+    const previsao = valorInicial + S_dinheiro - sangDin;
+
+    // Diferença / Quebra (o que de fato sobrou/faltou no caixa)
+    const quebra = contado - previsao;
+
+    // >>> Dinheiro REAL (FINAL da sua planilha):
+    // FINAL = Vendas em dinheiro (Sistema) + Quebra
+    // (equivale a Entrada + Sangrias, onde Entrada = Contado - Abertura)
+    const R_dinheiro = S_dinheiro + quebra;
+
+    // --- Diferenças ---
+    const D_dinheiro = R_dinheiro - S_dinheiro; // fica igual à "quebra"
+    const D_debito   = R_debito   - S_debito;
+    const D_credito  = R_credito  - S_credito;
+    const D_pix      = R_pix      - S_pix;
+
+    const Dif_cartao     = D_debito + D_credito;
+    const Dif_cartao_pix = Dif_cartao + D_pix;
+    const Dif_total      = D_dinheiro + Dif_cartao + D_pix;
+
+    // --- Quadro comparativo ---
+    setText('s-dinheiro', S_dinheiro);  setText('r-dinheiro', R_dinheiro);  setTextDiff('d-dinheiro', D_dinheiro);
+    setText('s-debito',   S_debito);    setText('r-debito',   R_debito);    setTextDiff('d-debito',   D_debito);
+    setText('s-credito',  S_credito);   setText('r-credito',  R_credito);   setTextDiff('d-credito',  D_credito);
+    setText('s-pix',      S_pix);       setText('r-pix',      R_pix);       setTextDiff('d-pix',      D_pix);
+    setTextDiff('d-cartao',     Dif_cartao);
+    setTextDiff('d-cartao-pix', Dif_cartao_pix);
+    setTextDiff('d-total',      Dif_total);
+
+    // --- Card "Conferência de Dinheiro Físico" (mantém como estava) ---
+    setText('cd-abr-caixa',      valorInicial);
+    setText('cd-vendas-din-sis', S_dinheiro);
+    setText('cd-sangria-din',   -sangDin); // mostra com sinal negativo
+    setText('cd-previsao',       previsao);
+    setText('cd-contado',        contado);
+    setTextDiff('cd-quebra',     quebra);
+    setText('cd-final-real',     R_dinheiro);
+  }
+
+
+    function setText(id,val){const el=document.getElementById(id); if(el) el.textContent=toBRL(val||0);}
+    function setTextDiff(id,val){const el=document.getElementById(id); if(!el) return; el.textContent=toBRL(val||0); el.classList.remove('neg','pos'); if((val||0)<0) el.classList.add('neg'); else if((val||0)>0) el.classList.add('pos');}
+
+    function showStep(step) {
+      document.querySelectorAll('section').forEach(s => s.hidden = true);
+      document.getElementById(`step-${step}`).hidden = false;
+
+      indicator.textContent = `${step}/${totalSteps}`;
+      subtitle.innerHTML = `<strong>Passo ${step}:</strong> ${stepTitles[step - 1]}`;
+
+      btnAnterior.hidden = (step === 1);
+      btnProximo.hidden  = (step === totalSteps);
+      btnSalvar.hidden   = (step !== totalSteps);
+
+      if (step === 6) {
+        saveStepData(5);
+        recomputeComparison();
+      }
+    }
+
+    // Modais existentes
+    const modalPass2=document.getElementById('modal-pass2');
+    const pass2List=document.getElementById('modal-pass2-list');
+    document.getElementById('pass2-cancel').addEventListener('click',()=>modalPass2.style.display='none');
+    document.getElementById('pass2-ok').addEventListener('click',()=>{modalPass2.style.display='none'; saveStepData(2); currentStep++; showStep(currentStep);});
+
+    const modalP4=document.getElementById('modal-p4');
+    document.getElementById('p4-cancel').addEventListener('click',()=>modalP4.style.display='none');
+    document.getElementById('p4-ok').addEventListener('click',()=>{modalP4.style.display='none'; saveStepData(4); currentStep++; showStep(currentStep);});
+
+    btnProximo.addEventListener('click',()=>{
+      if(currentStep===1){ if(!validateStep1()) return; saveStepData(1); currentStep++; showStep(currentStep); return; }
+      if(currentStep===2){
+        if(!validateStep2()) return;
+        pass2List.innerHTML=`
+          <li><strong>Balcão:</strong> ${getVal('pedidos_balcao')||0} pedidos</li>
+          <li><strong>WhatsApp:</strong> ${getVal('pedidos_zap')||0} pedidos</li>
+          <li><strong>Vuca:</strong> ${getVal('pedidos_vuca')||0} pedidos</li>
+          <li><strong>Taxa de entrega:</strong> ${toBRL(parseBRL(getVal('taxa_entrega')))}</li>
+        `;
+        modalPass2.style.display='flex';
+        return;
+      }
+      if(currentStep===3){ if(!validateStep3()) return; saveStepData(3); currentStep++; showStep(currentStep); return; }
+      if(currentStep===4){
+        const v=validateStep4();
+        if(v===true){ saveStepData(4); currentStep++; showStep(currentStep); return; }
+        if(v==='confirm'){ return; }
+        return;
+      }
+      if(currentStep===5){ if(!validateStep5()) return; saveStepData(5); currentStep++; showStep(currentStep); return; }
+    });
+    btnAnterior.addEventListener('click',()=>{ if(currentStep>1){ saveStepData(currentStep); currentStep--; showStep(currentStep);} });
+
+    // dinheiro
+    const denominations=[0.05,0.10,0.25,0.50,1.00,2.00,5.00,10.00,20.00,50.00,100.00];
+    function setupMoneyCounter(containerId,totalDisplayId){
+      const grid=document.getElementById(containerId);
+      denominations.forEach(v=>{
+        const div=document.createElement('div');
+        div.className='field';
+        const id=`money-val-${v.toFixed(2).replace('.','')}`;
+        div.innerHTML=`<label for="${id}" class="label">R$ ${v.toFixed(2).replace('.', ',')}</label>
+          <input type="text" id="${id}" class="input money" data-denom="${v}" placeholder="R$ 0,00">`;
+        grid.appendChild(div);
+      });
+      applyMoneyMask(`#${containerId} .money`);
+
+      // valida múltiplos com modal de erro
+      grid.addEventListener('blur',e=>{
+        const inp=e.target;
+        if(!(inp && inp.classList && inp.classList.contains('money'))) return;
+        const denom=parseFloat(inp.dataset.denom||'0');
+        let val=parseBRL(inp.value);
+        if(val===0){ clearError(inp); updateMoneyTotal(containerId,totalDisplayId,true); return; }
+        if(denom>0){
+          const mult=Math.floor((val+1e-9)/denom)*denom;
+          if(Math.abs(mult-val)>1e-6){
+            markError(inp);
+            BBModal.error(`O valor deve ser múltiplo de <strong>R$ ${denom.toFixed(2).replace('.',',')}</strong>.<br> Ajustei para baixo.`);
+            val=mult;
+          }else clearError(inp);
+        }
+        inp.value=val?toBRL(val):'';
+        updateMoneyTotal(containerId,totalDisplayId,true);
+      }, true);
+    }
+    function updateMoneyTotal(containerId,totalDisplayId,format=true){
+      let total=0; document.querySelectorAll(`#${containerId} .money`).forEach(i=>total+=parseBRL(i.value));
+      if(format) document.getElementById(totalDisplayId).textContent=`Total Contado: ${toBRL(total)}`;
+      return total;
+    }
+
+    // sangria
+    let sangriaCount=0;
+    function addSangria(data={}){
+      const container=document.getElementById('sangria-container');
+      const id=sangriaCount++;
+      const div=document.createElement('div');
+      div.className='sangria-item'; div.id=`sangria-item-${id}`;
+      div.innerHTML=`
+        <input type="text" id="sangria-desc-${id}" class="input" placeholder="Descrição (ex: vale)" value="${data.descricao||''}">
+        <input type="text" id="sangria-valor-${id}" class="input money" placeholder="R$ 0,00" value="${data.valor?toBRL(data.valor):''}">
+        <select id="sangria-forma-${id}" class="input">
+          <option ${data.forma_pagamento==='Dinheiro'?'selected':''}>Dinheiro</option>
+          <option ${data.forma_pagamento==='PIX'?'selected':''}>PIX</option>
+        </select>
+        <button type="button" class="btn-danger" onclick="document.getElementById('sangria-item-${id}').remove()">X</button>`;
+      container.appendChild(div); applyMoneyMask(`#sangria-item-${id} .money`);
+    }
+
+    // salvar
+    btnSalvar.addEventListener('click',()=>{
+      recomputeComparison();
+      const payload=getPayload();
+      const registroId=document.getElementById('registro-id').value;
+      fetch(`/fechamento/${registroId}`,{
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+      })
+      .then(r=>r.json()).then(data=>{
+        if(data.redirect_url){ sessionStorage.removeItem('fechamento_payload'); window.location.href=data.redirect_url; }
+        else{ BBModal.error('Erro ao salvar o fechamento.'); }
+      })
+      .catch(()=>BBModal.error('Ocorreu um erro de comunicação com o servidor.'));
+    });
+
+    // init
+    document.addEventListener('DOMContentLoaded',()=>{
+      applyMoneyMask('.money');
+      setupMoneyCounter('money-grid-final','total-dinheiro-final');
+
+      const cardIfood=document.getElementById('card-ifood');
+      const card99=document.getElementById('card-99food');
+      setEnabled(cardIfood,false); setEnabled(card99,false);
+      document.getElementById('ifood_on_sim').addEventListener('change',()=>setEnabled(cardIfood,true));
+      document.getElementById('ifood_on_nao').addEventListener('change',()=>{ setEnabled(cardIfood,false); clearError(document.getElementById('ifood_vendas')); clearError(document.getElementById('ifood_pedidos')); });
+
+      document.getElementById('f99_on_sim').addEventListener('change',()=>setEnabled(card99,true));
+      document.getElementById('f99_on_nao').addEventListener('change',()=>{ setEnabled(card99,false); clearError(document.getElementById('food99_vendas')); clearError(document.getElementById('food99_pedidos')); });
+
+      const cancelWrap=document.getElementById('ifood_cancel_valor_wrap');
+      function toggleCancel(){ const sim=document.getElementById('ifood_cancel_sim').checked; cancelWrap.hidden=!sim; if(!sim){ document.getElementById('ifood_cancelamento').value=''; clearError(document.getElementById('ifood_cancelamento')); } }
+      document.getElementById('ifood_cancel_sim').addEventListener('change',toggleCancel);
+      document.getElementById('ifood_cancel_nao').addEventListener('change',toggleCancel);
+      toggleCancel();
+
+      [['mp','card-mp'],['itau1','card-itau1'],['itau2','card-itau2'],['itau3','card-itau3'],['valori','card-valori'],['inf','card-inf'],['c6','card-c6']]
+      .forEach(([k,cardId])=>{
+        const card=document.getElementById(cardId);
+        setEnabled(card,false);
+        document.getElementById(`${k}_on_sim`).addEventListener('change',()=>setEnabled(card,true));
+        document.getElementById(`${k}_on_nao`).addEventListener('change',()=>{ setEnabled(card,false); ['debito','credito','pix'].forEach(t=>clearError(document.getElementById(`${k}_${t}`))); if(k==='c6') clearError(document.getElementById('c6_pix')); });
+      });
+
+      const sangriaDetails=document.getElementById('sangria-details');
+      document.getElementById('sangria_sim').addEventListener('change',()=>{
+        sangriaDetails.hidden=false;
+        if(!document.querySelector('#sangria-container .sangria-item')) addSangria();
+      });
+      document.getElementById('sangria_nao').addEventListener('change',()=>{
+        sangriaDetails.hidden=true; document.getElementById('sangria-container').innerHTML='';
+      });
+      document.getElementById('btnAddSangria').addEventListener('click',()=>addSangria());
+
+      loadData();
+      showStep(currentStep);
+    });
+
+    // navegação vertical no Vuca (Passo 1)
+    (function(){
+      const order=[
+        'vuca_balcao_dinheiro','vuca_balcao_debito','vuca_balcao_credito','vuca_balcao_pix',
+        'vuca_delivery_dinheiro','vuca_delivery_debito','vuca_delivery_credito','vuca_delivery_pix'
+      ];
+      order.forEach((id,idx)=>{
+        const el=document.getElementById(id);
+        if(!el) return;
+        el.addEventListener('keydown',e=>{
+          if(e.key==='Enter'||e.key==='Tab'){
+            e.preventDefault(); e.target.blur();
+            const nextIdx=e.shiftKey?idx-1:idx+1;
+            const nextId=order[nextIdx];
+            if(nextId){ const nextEl=document.getElementById(nextId); if(nextEl){ nextEl.focus(); nextEl.select?.(); } }
+            else{ document.getElementById('pedidos_balcao')?.focus(); }
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

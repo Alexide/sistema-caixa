@@ -1,0 +1,47 @@
+<!-- templates/_topbar.html -->
+<style>
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;padding:12px 18px;background:#0b1222;color:#fff
+  }
+  .topbar a{color:#e6ecff;text-decoration:none;font-weight:600}
+  .topbar a:hover{color:#fff;text-decoration:underline}
+  .topbar .left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .topbar .right{display:flex;align-items:center;gap:10px}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;
+         font-size:.8rem;background:#24314d;color:#a5b4fc}
+
+  .btn-logout{background:#dc3545;border-radius:8px;padding:6px 10px;color:#fff}
+  .btn-logout:hover{filter:brightness(.95)}
+
+  /* mesmo visual do seu "btn-admin" para todos os atalhos de admin */
+  .btn-admin{
+    background:#1f4bff22;border:1px solid #7ea1ff;border-radius:8px;
+    padding:6px 10px; color:#e6ecff; text-decoration:none
+  }
+</style>
+
+<header class="topbar">
+  <div class="left">
+    <a href="{{ url_for('homepage') }}">🏠 Início</a>
+
+    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+      <!-- atalhos de admin -->
+      <a class="btn-admin" href="{{ url_for('admin_relatorio') }}">📊 Relatório</a>
+      <a class="btn-admin" href="{{ url_for('admin_lancamentos') }}">🧾 Lançamentos</a>
+      <a class="btn-admin" href="{{ url_for('admin_users') }}">⚙️ Usuários</a>
+    {% endif %}
+  </div>
+
+  <div class="right">
+    {% if current_user.is_authenticated %}
+      <span>Olá, <strong>{{ current_user.username }}</strong></span>
+      <span class="badge">{{ current_user.role }}</span>
+      <a class="btn-logout" href="{{ url_for('logout') }}">Sair</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">Entrar</a>
+    {% endif %}
+  </div>
+</header>
+

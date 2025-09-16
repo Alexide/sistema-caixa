@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abertura de Caixa</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --ink:#243034; --muted:#5c6a5f;
+    --primary:#0a58ca; --ok:#0a8f2a; --bd:#e3e8ee; --success-bg:#e8f5e9;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
+  .wrap{max-width:1060px;margin:auto;padding:22px}
+  h1{margin:0 0 6px;font-size:clamp(1.6rem,2.5vw,2.2rem)}
+  .sub{margin:0 0 14px;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px 22px;box-shadow:0 2px 12px rgba(0,0,0,.03)}
+  .card-money{background:var(--success-bg);border-color:#a5d6a7}
+  .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .label{font-weight:600}
+  .hint{font-size:.86rem;color:var(--muted)}
+  .input{width:100%;border:1px solid #d9e3da;background:#fff;border-radius:10px;padding:10px 12px;font-variant-numeric:tabular-nums}
+  .input:focus{outline:none;border-color:#8bd09b;box-shadow:0 0 0 3px rgba(60,153,110,.2)}
+
+  /* === Dinheiro (layout igual ao Passo 5) === */
+  .money-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .money-total{font-size:1.1rem;font-weight:800;color:var(--ok);margin-top:12px}
+
+  .actions{display:flex;gap:10px;justify-content:space-between;margin-top:16px}
+  .btn{display:inline-flex;align-items:center;gap:8px;border:none;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer;text-decoration:none}
+  .btn-back{background:#6c757d;color:#fff}
+  .btn-open{background:var(--primary);color:#fff}
+  .btn-open:disabled{opacity:.6;cursor:not-allowed}
+
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:60}
+  .modal{background:#fff;border:1px solid var(--bd);border-radius:12px;max-width:460px;width:100%;padding:18px;box-shadow:0 18px 40px rgba(0,0,0,.25)}
+  .modal h3{margin:0 0 6px}
+  .modal p{margin:0 0 12px;color:var(--muted)}
+  .modal .row{display:flex;gap:10px;justify-content:flex-end}
+  .btn-cancel{background:#e5e7eb}
+  .btn-confirm{background:var(--ok);color:#fff}
+</style>
+</head>
+<body>
+  {% include "_topbar.html" %}
+  {% include "_flash.html" %}
+
+
+<div class="wrap">
+  <h1>Abertura de Caixa</h1>
+  <p class="sub">Informe o <strong>valor TOTAL</strong> de cada moeda/nota (não a quantidade). Use <strong>Enter</strong> para ir ao próximo campo.</p>
+
+  <!-- Data da abertura -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="grid-3">
+      <div class="field">
+        <label for="data_abertura" class="label">Data da abertura</label>
+        <input type="date" id="data_abertura" class="input">
+        <span class="hint">Preencha manualmente caso esteja abrindo após 00:00.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contagem inicial -->
+  <div class="card card-money">
+    <h3 class="label" style="font-size:1.1rem;margin:0 0 10px">Contagem Inicial do Dinheiro (Abertura)</h3>
+
+    <div class="money-grid" id="grid-money">
+      <!-- cada bloco: label + input -->
+      <!-- 0,05 -->
+      <div class="field"><label class="label">R$ 0,05</label><input class="input money" data-denom="0.05" placeholder="R$ 0,00"></div>
+      <div class="field"><label class="label">R$ 0,10</label><input class="input money" data-denom="0.10" placeholder="R$ 0,00"></div>
+      <div class="field"><label class="label">R$ 0,25</label><input class="input money" data-denom="0.25" placeholder="R$ 0,00"></div>
+      <div class="field"><label class="label">R$ 0,50</label><input class="input money" data-denom="0.50" placeholder="R$ 0,00"></div>
+      <div class="field"><label class="label">R$ 1,00</label><input  class="input money" data-denom="1.00"  placeholder="R$ 0,00"></div>
+      <div class="field"><label class="label">R$ 2,00</label><input  class="input money" data-denom="2.00"  placeholder="R$ 0,00"></div>
+      <div class="field"><label class="label">R$ 5,00</label><input  class="input money" data-denom="5.00"  placeholder="R$ 0,00"></div>
+      <div class="field"><label class="label">R$ 10,00</label><input class="input money" data-denom="10.00" placeholder="R$ 0,00"></div>
+      <div class="field"><label class="label">R$ 20,00</label><input class="input money" data-denom="20.00" placeholder="R$ 0,00"></div>
+      <div class="field"><label class="label">R$ 50,00</label><input class="input money" data-denom="50.00" placeholder="R$ 0,00"></div>
+      <div class="field"><label class="label">R$ 100,00</label><input class="input money" data-denom="100.00" placeholder="R$ 0,00"></div>
+    </div>
+
+    <div class="money-total" id="total-val">Total Contado: R$ 0,00</div>
+
+    <div class="actions">
+      <a class="btn btn-back" href="{{ url_for('homepage') }}">↩ Voltar</a>
+      <button class="btn btn-open" id="btnAbrir" disabled>Abrir caixa (Alt+O)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmação -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <h3 id="m-title">Confirmar abertura</h3>
+    <p id="m-msg">Abrir caixa em <strong>--/--/----</strong> com <strong>R$ 0,00</strong>?</p>
+    <div class="row">
+      <button class="btn btn-cancel" id="mCancel">Cancelar</button>
+      <button class="btn btn-confirm" id="mOk">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== Helpers =====
+  const fmtBRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+  const toBRL  = n => fmtBRL.format(isFinite(n)?n:0);
+  const parseBRL = s => {
+    if(!s) return 0;
+    const x = String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.');
+    const n = parseFloat(x);
+    return isNaN(n)?0:n;
+  };
+  const el = sel => document.querySelector(sel);
+
+  // Data -> DD/MM/AAAA
+  function formatDateBR(raw){
+    if(!raw) return '';
+    const [y,m,d] = raw.split('-');
+    return (d && m && y) ? `${d}/${m}/${y}` : '';
+  }
+
+  // ===== Máscara/validação dos campos de dinheiro =====
+  const moneyInputs = Array.from(document.querySelectorAll('.money'));
+
+  function applyMoneyMask(inp){
+    inp.addEventListener('focus', ()=>{ const v = parseBRL(inp.value); inp.value = v ? String(v).replace('.', ',') : ''; inp.select(); });
+    inp.addEventListener('input', ()=>{ inp.value = inp.value.replace(/[^0-9,.-]/g,''); });
+
+    // valida múltiplo ao sair do campo
+    inp.addEventListener('blur', ()=>{
+      let val = parseBRL(inp.value);
+      const denom = parseFloat(inp.dataset.denom || '0');
+      if(val && denom){
+        const mult = Math.floor((val + 1e-9) / denom) * denom; // arredonda para baixo
+        if(Math.abs(mult - val) > 1e-6){
+          // mensagem mais clara
+          alert(`O valor deve ser múltiplo de R$ ${denom.toFixed(2).replace('.',',')}.\n\nO sistema arredondou automaticamente para o múltiplo válido imediatamente inferior.`);
+          val = mult;
+        }
+      }
+      inp.value = val ? toBRL(val) : '';
+      updateTotal();
+    });
+
+    // Enter => próximo campo
+    inp.addEventListener('keydown', e=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        e.target.blur();
+        const idx = moneyInputs.indexOf(inp);
+        const next = moneyInputs[idx + 1];
+        if(next){ next.focus(); next.select?.(); }
+        else{ openConfirm(); }
+      }
+    });
+  }
+
+  moneyInputs.forEach(applyMoneyMask);
+
+  function updateTotal(){
+    const total = moneyInputs.reduce((t,i)=> t + parseBRL(i.value), 0);
+    document.getElementById('total-val').textContent = `Total Contado: ${toBRL(total)}`;
+    document.getElementById('btnAbrir').disabled = total <= 0;
+    return total;
+  }
+  updateTotal();
+
+  // ===== Navegação: Enter no campo de data vai para o primeiro dinheiro =====
+  const dateEl = document.getElementById('data_abertura');
+  dateEl.addEventListener('keydown', e=>{
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      moneyInputs[0]?.focus();
+      moneyInputs[0]?.select?.();
+    }
+  });
+
+  // ===== Modal de confirmação =====
+  const modal  = document.getElementById('modal');
+  const mMsg   = document.getElementById('m-msg');
+  const mOk    = document.getElementById('mOk');
+  const mCancel= document.getElementById('mCancel');
+
+  function ensureValidDate(){
+    const raw = (dateEl.value || '').trim();
+    if(!raw){ alert('Selecione a data da abertura.'); dateEl.focus(); return null; }
+    // input date sempre entrega YYYY-MM-DD; validamos rapidamente
+    const [y,m,d] = raw.split('-').map(Number);
+    const test = new Date(y, (m||1)-1, d||1);
+    if(!(test.getFullYear()===y && test.getMonth()===(m-1) && test.getDate()===d)){
+      alert('Selecione uma data válida.'); dateEl.focus(); return null;
+    }
+    return raw;
+  }
+
+  function openConfirm(){
+    const dtRaw = ensureValidDate();
+    if(!dtRaw) return;
+    const tot = updateTotal();
+    if(tot <= 0) return;
+
+    const dtBR = formatDateBR(dtRaw);
+    mMsg.innerHTML = `Abrir caixa em <strong>${dtBR}</strong> com <strong>${toBRL(tot)}</strong>?`;
+    modal.style.display = 'flex';
+    mOk.focus();
+    
+  }
+  function closeConfirm(){ modal.style.display='none'; }
+
+  async function sendOpen(){
+    // valida e pega a data em ISO (YYYY-MM-DD) do <input type="date">
+    const raw = (document.getElementById('data_abertura').value || '').trim();
+    if(!raw){ alert('Selecione a data da abertura.'); document.getElementById('data_abertura').focus(); return; }
+
+    const [y,m,d] = raw.split('-').map(Number);
+    const test = new Date(y, (m||1)-1, d||1);
+    if(!(test.getFullYear()===y && test.getMonth()===(m-1) && test.getDate()===d)){
+      alert('Selecione uma data válida.'); document.getElementById('data_abertura').focus(); return;
+    }
+
+    const valor = updateTotal();
+
+    try{
+      const resp = await fetch("{{ url_for('abertura') }}", {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        // 👇 mande a data em ISO; o backend não vai confundir
+        body: JSON.stringify({ valor_inicial: valor, data_abertura: raw })
+      });
+      const data = await resp.json();
+      if (resp.ok && data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        alert('Não foi possível abrir o caixa.');
+      }
+    }catch{
+      alert('Falha de rede ao abrir o caixa.');
+    }
+  }
+
+
+  document.getElementById('btnAbrir').addEventListener('click', openConfirm);
+  mCancel.addEventListener('click', closeConfirm);
+  modal.addEventListener('click', (e)=>{ if(e.target===modal) closeConfirm(); });
+  mOk.addEventListener('click', sendOpen);
+
+  // Atalhos
+  document.addEventListener('keydown', (e)=>{
+    if (e.altKey && e.key.toLowerCase()==='o' && modal.style.display!=='flex') {
+      e.preventDefault(); openConfirm();
+    }
+    if (e.key==='Enter' && modal.style.display==='flex') {
+      e.preventDefault(); sendOpen();
+    }
+    if (e.key==='Escape' && modal.style.display==='flex') {
+      e.preventDefault(); closeConfirm();
+    }
+  });
+
+  // Data padrão = hoje
+  document.addEventListener('DOMContentLoaded', ()=>{
+    if(!dateEl.value){ dateEl.valueAsDate = new Date(); }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin • Usuários</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;margin:20px;background:#f7f9fb;color:#223}
+    h1{margin:0 0 16px}
+    .wrap{max-width:900px;margin:auto}
+    .card{background:#fff;border:1px solid #e3e8ee;border-radius:12px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+    input,select{width:100%;padding:10px;border:1px solid #d7dee7;border-radius:10px}
+    .btn{border:none;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .btn-primary{background:#0a58ca;color:#fff}
+    .btn-danger{background:#dc3545;color:#fff}
+    .btn-light{background:#e9edf3;color:#223}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    th,td{text-align:left;padding:10px 12px;background:#fff;border:1px solid #e3e8ee}
+    th{background:#f1f5fb}
+    tr td:first-child, tr th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+    tr td:last-child,  tr th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+    .row-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{display:inline-block;padding:4px 9px;border-radius:999px;font-size:.85rem}
+    .badge-admin{background:#e7f0ff;color:#0a58ca}
+    .badge-caixa{background:#e9f7ef;color:#0a8f2a}
+    .badge-user{background:#f6efe8;color:#b26b00}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    a{color:#0a58ca;text-decoration:none}
+  </style>
+</head>
+<body>
+    {% include "_topbar.html" %}
+    {% include "_flash.html" %}
+
+
+  <div class="wrap">
+    <div class="topbar">
+      <h1>Admin • Usuários</h1>
+      <a class="btn btn-light" href="{{ url_for('homepage') }}">← Voltar</a>
+    </div>
+
+    <!-- Criar novo -->
+    <div class="card">
+      <h3 style="margin-top:0">Criar novo usuário</h3>
+      <form method="post" action="{{ url_for('admin_users') }}">
+        <div class="grid" style="margin-top:8px">
+          <div><label>Usuário</label><input name="username" required></div>
+          <div><label>Senha</label><input name="password" type="password" required></div>
+          <div>
+            <label>Papel</label>
+            <select name="role">
+              <option value="caixa">caixa</option>
+              <option value="user">user</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px"><button class="btn btn-primary" type="submit">Criar usuário</button></div>
+      </form>
+    </div>
+
+    <!-- Lista -->
+    <div class="card">
+      <h3 style="margin-top:0">Usuários existentes</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Usuário</th><th>Papel</th><th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in usuarios %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td>
+              {% if u.role == 'admin' %}<span class="badge badge-admin">admin</span>
+              {% elif u.role == 'caixa' %}<span class="badge badge-caixa">caixa</span>
+              {% else %}<span class="badge badge-user">user</span>{% endif %}
+            </td>
+            <td>
+              <div class="row-actions">
+                <form method="post" action="{{ url_for('admin_users_reset', user_id=u.id) }}">
+                  <input type="password" name="password" placeholder="nova senha (opcional)">
+                  <button class="btn btn-light" type="submit">Redefinir</button>
+                </form>
+                <form method="post" action="{{ url_for('admin_users_delete', user_id=u.id) }}" onsubmit="return confirm('Remover usuário {{u.username}}?');">
+                  <button class="btn btn-danger" type="submit">Remover</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

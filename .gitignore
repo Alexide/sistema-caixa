@@ -1,0 +1,14 @@
+Ambiente Virtual do Python
+
+venv/
+pycache/
+Ficheiros de Base de Dados local
+
+*.sqlite
+*.sqlite3
+Ficheiros do sistema operativo
+
+.DS_Store
+Ficheiros de IDE
+
+.vscode/

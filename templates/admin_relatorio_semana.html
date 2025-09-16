@@ -1,0 +1,254 @@
+<!-- templates/admin_relatorio_semana.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Relatório semanal</title>
+  <style>
+    :root{
+      --card-bg:#fff; --card-bd:#e7ecf2; --ink:#1f2937; --muted:#6b7280;
+      --mp:#e8f1ff; --itau:#ffe8d7; --valori:#e6f7fb; --infp:#efe7ff; --c6:#eaf7ea;
+      --table-bd:#eef2f7;
+    }
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;background:#f5f7fb;color:var(--ink)}
+    .page{max-width:100%;padding:16px 22px}
+    .title{font-size:28px;font-weight:900;margin:6px 0 4px}
+    .subtitle{color:var(--muted);margin:0 0 16px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media (max-width:1200px){ .grid-2{grid-template-columns:1fr} }
+
+    .card{background:var(--card-bg);border:1px solid var(--card-bd);border-radius:14px;padding:16px 16px 10px;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+    .card h3{margin:0 0 10px}
+
+    .table-wrap{overflow:auto;border:1px solid var(--table-bd);border-radius:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{white-space:nowrap;padding:10px 12px;border-bottom:1px solid var(--table-bd)}
+    thead th{position:sticky;top:0;background:#f9fbff;z-index:1}
+    tbody tr:last-child td{border-bottom:0}
+
+    .brand-mp   td{background:var(--mp)}
+    .brand-itau td{background:var(--itau)}
+    .brand-val  td{background:var(--valori)}
+    .brand-inf  td{background:var(--infp)}
+    .brand-c6   td{background:var(--c6)}
+    .tfoot td{font-weight:800}
+
+    .right{text-align:right}
+    .center{text-align:center}
+
+    /* pílula usada no resumo por tipo */
+    .pill{display:inline-block;background:#eef3ff;color:#1a2a6c;border-radius:999px;padding:2px 10px;font-size:.85rem;font-weight:700}
+
+
+    /* ---- resumo compacto (mesma “pegada” das maquininhas) ---- */
+.table-tight { border:1px solid var(--table-bd); border-radius:12px; overflow:auto; }
+.table-tight table{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; }
+.table-tight th, .table-tight td{ padding:4px 6px; font-size:.86rem; line-height:1.15; }
+.table-tight thead th{ background:#f9fbff; position:sticky; top:0; z-index:1; }
+
+/* 1ª e última colunas fixas; datas ficam compactas */
+.table-tight .col-desc{ width:240px; }
+.table-tight .col-total{ width:110px; }
+
+/* todas as colunas que NÃO são desc/total (ou seja, as datas) ficam estreitas */
+.table-tight thead th:not(.col-desc):not(.col-total),
+.table-tight tbody td:not(.col-desc):not(.col-total){
+  width:76px;     /* ajuste aqui (70–90px) até ficar do seu gosto */
+}
+
+/* cabeçalho do grupo mais apertado */
+.compact-header{
+  display:flex;justify-content:space-between;align-items:center;margin:6px 0 8px
+}
+
+  </style>
+</head>
+<body>
+  {% include "_topbar.html" %}
+  {% include "_flash.html" %}
+
+  <div class="page">
+    <h1 class="title">Relatório semanal • {{ period }}</h1>
+
+    <!-- Filtro de datas -->
+    <form method="get" style="display:flex;align-items:center;gap:8px;margin:6px 0 14px">
+      <label>De:
+        <input type="date" name="start" value="{{ start_iso }}">
+      </label>
+      <label>até:
+        <input type="date" name="end" value="{{ end_iso }}">
+      </label>
+      <button type="submit" style="padding:8px 12px;border:1px solid #d0d7e2;border-radius:8px;background:#fff;cursor:pointer">
+        Aplicar
+      </button>
+    </form>
+
+    <p class="subtitle">As colunas mostram <strong>cada dia do intervalo</strong>. Use o seletor de datas acima.</p>
+
+    <!-- Linha 2: Resumo por dia (por Tipo de compra) -->
+<div style="margin-top:16px">
+  <div class="card">
+    <h3>Resumo por dia (por Tipo de compra)</h3>
+
+{% if pivot_lanc|length == 0 %}
+  <p style="margin:6px 0 0 2px;color:#6b7280">Nenhum lançamento no período.</p>
+{% endif %}
+
+{% for g in pivot_lanc %}
+  <div class="card" style="margin:10px 0;background:#f9fbff">
+    <div class="compact-header">
+      <strong style="font-size:1.02rem">{{ g.grupo }}</strong>
+      <span class="pill">Total: {{ g.total|currency_br }}</span>
+    </div>
+
+    <div class="table-tight">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-desc" style="text-align:left">Fornecedor / Descrição</th>
+            {% for d in dias_label %}
+              <th class="right">{{ d }}</th>
+            {% endfor %}
+            <th class="right col-total">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in g.rows %}
+            <tr>
+              <td class="col-desc">{{ r.desc }}</td>
+              {% for v in r.vals %}
+                <td class="right">{{ v|currency_br }}</td>
+              {% endfor %}
+              <td class="right col-total"><strong>{{ r.total|currency_br }}</strong></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="tfoot">
+            <td class="col-desc">Total {{ g.grupo }}</td>
+            {% for c in g.totals %}
+              <td class="right">{{ c|currency_br }}</td>
+            {% endfor %}
+            <td class="right col-total">{{ g.total|currency_br }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+{% endfor %}
+
+<div style="display:flex;justify-content:flex-end;margin-top:8px">
+  <span class="pill">TOTAL DE COMPRAS: {{ (pivot_lanc | map(attribute='total') | sum) | currency_br }}</span>
+</div>
+
+  </div>
+</div>
+
+    <!-- Linha 1: Cartões por maquininha  |  Taxas por maquininha -->
+    <div style="margin-top:16px">
+      <!-- Cartões/PIX por maquininha -->
+      <div class="card">
+        <h3>Cartões / PIX por maquininha</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Linha</th>
+                {% for d in dias_label %}<th class="right">{{ d }}</th>{% endfor %}
+                <th class="right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in linhas_maqs %}
+                {% set lbl = row.label %}
+                {% set cls = (
+                  'brand-mp' if lbl.startswith('Mercado Pago')
+                  else 'brand-itau' if lbl.startswith('Itaú')
+                  else 'brand-val' if lbl.startswith('Valori')
+                  else 'brand-inf' if lbl.startswith('InfinitePay')
+                  else 'brand-c6'  if lbl.startswith('C6')
+                  else ''
+                ) %}
+                <tr class="{{ cls }}">
+                  <td>{{ lbl }}</td>
+                  {% for v in row.valores %}<td class="right">{{ v|currency_br }}</td>{% endfor %}
+                  <td class="right"><strong>{{ row.total|currency_br }}</strong></td>
+                </tr>
+              {% endfor %}
+
+              <!-- totais por meio -->
+              <tr class="tfoot">
+                <td>Total Débito</td>
+                {% for v in tot_por_meio.debito %}<td class="right">{{ v|currency_br }}</td>{% endfor %}
+                <td class="right">{{ (tot_por_meio.debito | sum)|currency_br }}</td>
+              </tr>
+              <tr class="tfoot">
+                <td>Total Crédito</td>
+                {% for v in tot_por_meio.credito %}<td class="right">{{ v|currency_br }}</td>{% endfor %}
+                <td class="right">{{ (tot_por_meio.credito | sum)|currency_br }}</td>
+              </tr>
+              <tr class="tfoot">
+                <td>Total PIX</td>
+                {% for v in tot_por_meio.pix %}<td class="right">{{ v|currency_br }}</td>{% endfor %}
+                <td class="right">{{ (tot_por_meio.pix | sum)|currency_br }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Taxas por maquininha (Soma • % • Taxa • Real • Total cartão) -->
+      <div class="card">
+        <h3>Taxas por maquininha (semana)</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Maquininha</th>
+                <th>Meio</th>
+                <th class="right">Soma</th>
+                <th class="center">%</th>
+                <th class="right">Taxa</th>
+                <th class="right">Real</th>
+                <th class="right">TOTAL Cartão</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in tax_rows %}
+                {% set brand = r.brand %}
+                {% set cls = (
+                  'brand-mp'  if brand == 'Mercado Pago'
+                  else 'brand-itau' if brand == 'Itaú'
+                  else 'brand-val' if brand == 'Valori'
+                  else 'brand-inf' if brand == 'InfinitePay'
+                  else 'brand-c6'  if brand.startswith('C6')
+                  else ''
+                ) %}
+                <tr class="{{ cls }}">
+                  <td>{{ brand }}</td>
+                  <td style="text-transform:capitalize">{{ r.meio }}</td>
+                  <td class="right">{{ r.soma|currency_br }}</td>
+                  <td class="center">{{ (r.percent*100)|round(2) }}%</td>
+                  <td class="right">{{ r.taxa|currency_br }}</td>
+                  <td class="right"><strong>{{ r.real|currency_br }}</strong></td>
+                  <td class="right"><strong>{{ r.total_brand_net|currency_br }}</strong></td>
+                </tr>
+              {% endfor %}
+              <tr class="tfoot">
+                <td colspan="6">Taxas pagas (soma)</td>
+                <td class="right">
+                  {{ (tax_rows|map(attribute='taxa')|sum)|currency_br }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+
+
+  </div>
+</body>
+</html>
