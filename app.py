@@ -18,17 +18,6 @@ import secrets
 
 
 # =========================
-# Locale pt-BR (dia da semana)
-# =========================
-try:
-    locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
-except locale.Error:
-    try:
-        locale.setlocale(locale.LC_TIME, 'Portuguese_Brazil')
-    except locale.Error:
-        locale.setlocale(locale.LC_TIME, '')  # Fallback
-
-# =========================
 # Config Inicial
 # =========================
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -46,8 +35,6 @@ else:
     # Se estiver no seu computador, continua a usar o SQLite local
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'dados.sqlite')
 
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'dados.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -288,6 +275,43 @@ FEE_PERCENTS = {
 # =========================
 # Rotas de Autenticação
 # =========================
+
+# =========================
+# Rota de Inicialização (NOVO!)
+# =========================
+@app.route('/init-db')
+def init_db_command():
+    """
+    Cria as tabelas do banco de dados e o primeiro usuário admin.
+    Esta rota deve ser acedida apenas uma vez.
+    """
+    try:
+        # Verifica se a tabela de usuários já existe para evitar recriar tudo
+        if db.engine.has_table('user'):
+             # Se já existe, apenas verifica se o admin existe
+            admin_user = User.query.filter_by(username='admin').first()
+            if admin_user:
+                return "Banco de dados já inicializado e admin já existe."
+        
+        # Cria todas as tabelas
+        db.create_all()
+
+        # Cria o usuário admin se ele não existir
+        admin_user = User.query.filter_by(username='admin').first()
+        if not admin_user:
+            admin = User(username='admin', role='admin')
+            # Use uma senha padrão ou uma vinda de variáveis de ambiente
+            admin.set_password('admin123') 
+            db.session.add(admin)
+            db.session.commit()
+            return "Banco de dados inicializado e usuário 'admin' criado com a senha 'admin123'!"
+        
+        return "Banco de dados inicializado com sucesso (admin já existia)."
+
+    except Exception as e:
+        return f"Ocorreu um erro: {e}"
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
